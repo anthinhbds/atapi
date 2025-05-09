@@ -21,6 +21,14 @@ public interface ICustomerJourneyService
     Task<IEnumerable<CustomerJourneyDetInfo>> GetDetails(string customerId);
     Task<IEnumerable<CustomerJourneyInfo>> Query(QueryParamModel model, int? page, int? pageSize);
     Task<int> QueryTotal(QueryParamModel model);
+    Task<IEnumerable<CustomerJourneyInfo>> QueryPlanned(QueryParamModel model, int? page, int? pageSize);
+    Task<int> QueryPlannedTotal(QueryParamModel model);
+    Task<IEnumerable<CustomerJourneyInfo>> QueryMet(QueryParamModel model, int? page, int? pageSize);
+    Task<int> QueryMetTotal(QueryParamModel model);
+    Task<IEnumerable<CustomerJourneyInfo>> QueryOther(QueryParamModel model, int? page, int? pageSize);
+    Task<int> QueryOtherTotal(QueryParamModel model);
+
+    Task<IEnumerable<CustomerJourneySummaryInfo>> GetSummary(QueryParamModel model);
     Task<CustomerJourneyInfo> Add(CustomerJourneyInfo obj);
     Task<CustomerJourneyInfo> Update(CustomerJourneyInfo obj);
     Task<bool> Delete(String id);
@@ -74,7 +82,7 @@ public class CustomerJourneyService : GenericService, ICustomerJourneyService
         if (model.Sort != null)
             query = ApplySort(query, model.Sort);
         else
-            query = query.OrderBy(f => f.Quality).ThenByDescending(f => f.CreatedDate);
+            query = query.OrderByDescending(f => f.LastUpdate);
 
 
         var data = await query.Skip((page.Value - 1) * pageSize.Value)
@@ -82,14 +90,135 @@ public class CustomerJourneyService : GenericService, ICustomerJourneyService
 
         return _mapper.Map<IEnumerable<CustomerJourneyInfo>>(data);
     }
-
-
     public async Task<int> QueryTotal(QueryParamModel model)
     {
-        var qry = ApplyFilter(_repo, model, ["projectname", "district.districtname"]);
+        var qry = ApplyFilter(_repo, model, ["customer.telephone", "customer.customername"]);
         var c = await qry.CountAsync();
         return c;
     }
+
+    public async Task<IEnumerable<CustomerJourneyInfo>> QueryPlanned(QueryParamModel model, int? page, int? pageSize)
+    {
+        var query = ApplyFilter(_repo, model, ["customer.telephone", "customer.customername"]);
+
+        query = query.Where(f => f.Status == "DHL").Select(item => new CustomerJourney
+        {
+            CustomerId = item.CustomerId,
+            UserId = item.UserId,
+            Customer = item.Customer,
+            Comments = item.Comments,
+            Status = item.Status,
+            Demand = item.Demand,
+            Finance = item.Finance,
+            Searching = item.Searching,
+            Quality = item.Quality,
+            CreatedDate = item.CreatedDate,
+            CreatedBy = item.CreatedBy,
+            LastUpdate = item.LastUpdate,
+            UpdatedBy = item.UpdatedBy,
+        });
+
+
+        if (model.Sort != null)
+            query = ApplySort(query, model.Sort);
+        else
+            query = query.OrderByDescending(f => f.LastUpdate);
+
+
+        var data = await query.Skip((page.Value - 1) * pageSize.Value)
+             .Take(pageSize.Value).ToListAsync();
+
+        return _mapper.Map<IEnumerable<CustomerJourneyInfo>>(data);
+    }
+    public async Task<int> QueryPlannedTotal(QueryParamModel model)
+    {
+        var qry = ApplyFilter(_repo, model, ["customer.telephone", "district.districtname"]);
+        var c = await qry.Where(f => f.Status == "DHL").CountAsync();
+        return c;
+    }
+
+    public async Task<IEnumerable<CustomerJourneyInfo>> QueryMet(QueryParamModel model, int? page, int? pageSize)
+    {
+        var query = ApplyFilter(_repo, model, ["customer.telephone", "customer.customername"]);
+
+        query = query.Where(f => f.Status == "DDK").Select(item => new CustomerJourney
+        {
+            CustomerId = item.CustomerId,
+            UserId = item.UserId,
+            Customer = item.Customer,
+            Comments = item.Comments,
+            Status = item.Status,
+            Demand = item.Demand,
+            Finance = item.Finance,
+            Searching = item.Searching,
+            Quality = item.Quality,
+            CreatedDate = item.CreatedDate,
+            CreatedBy = item.CreatedBy,
+            LastUpdate = item.LastUpdate,
+            UpdatedBy = item.UpdatedBy,
+        });
+
+
+        if (model.Sort != null)
+            query = ApplySort(query, model.Sort);
+        else
+            query = query.OrderByDescending(f => f.LastUpdate);
+
+
+        var data = await query.Skip((page.Value - 1) * pageSize.Value)
+             .Take(pageSize.Value).ToListAsync();
+
+        return _mapper.Map<IEnumerable<CustomerJourneyInfo>>(data);
+    }
+    public async Task<int> QueryMetTotal(QueryParamModel model)
+    {
+        var qry = ApplyFilter(_repo, model, ["customer.telephone", "customer.customername"]);
+        var c = await qry.Where(f => f.Status == "DDK").CountAsync();
+        return c;
+    }
+
+    public async Task<IEnumerable<CustomerJourneyInfo>> QueryOther(QueryParamModel model, int? page, int? pageSize)
+    {
+        var query = ApplyFilter(_repo, model, ["customer.telephone", "customer.customername"]);
+        var states = new[] { "DHL", "DDK" };
+        query = query.Where(f => !states.Contains(f.Status)).Select(item => new CustomerJourney
+        {
+            CustomerId = item.CustomerId,
+            UserId = item.UserId,
+            Customer = item.Customer,
+            Comments = item.Comments,
+            Status = item.Status,
+            Demand = item.Demand,
+            Finance = item.Finance,
+            Searching = item.Searching,
+            Quality = item.Quality,
+            CreatedDate = item.CreatedDate,
+            CreatedBy = item.CreatedBy,
+            LastUpdate = item.LastUpdate,
+            UpdatedBy = item.UpdatedBy,
+        });
+
+
+        if (model.Sort != null)
+            query = ApplySort(query, model.Sort);
+        else
+            query = query.OrderByDescending(f => f.LastUpdate);
+
+
+        var data = await query.Skip((page.Value - 1) * pageSize.Value)
+             .Take(pageSize.Value).ToListAsync();
+
+        return _mapper.Map<IEnumerable<CustomerJourneyInfo>>(data);
+    }
+    public async Task<int> QueryOtherTotal(QueryParamModel model)
+    {
+        var qry = ApplyFilter(_repo, model, ["customer.telephone", "customer.customername"]);
+        var states = new[] { "DHL", "DDK" };
+        var c = await qry.Where(f => !states.Contains(f.Status)).CountAsync();
+        return c;
+    }
+
+
     public async Task<IEnumerable<CustomerJourneyDetInfo>> GetDetails(string customerId)
     {
         var query = _repoDet.Query(f => f.CustomerId == customerId).OrderByDescending(f => f.Journeydate);
@@ -238,6 +367,31 @@ public class CustomerJourneyService : GenericService, ICustomerJourneyService
         // query = query.Where(f => !customerjourneys.Contains(f.CustomerId));
         var c = await query.CountAsync();
         return c;
+    }
+
+    public async Task<IEnumerable<CustomerJourneySummaryInfo>> GetSummary(QueryParamModel model)
+    {
+        var plannedCount = await QueryPlannedTotal(model);
+        var metCount = await QueryMetTotal(model);
+        var otherCount = await QueryOtherTotal(model);
+
+        var data = new List<CustomerJourneySummaryInfo>();
+        data.Add(new CustomerJourneySummaryInfo
+        {
+            Key = "PLANNED",
+            Count = plannedCount
+        });
+        data.Add(new CustomerJourneySummaryInfo
+        {
+            Key = "MET",
+            Count = metCount
+        });
+        data.Add(new CustomerJourneySummaryInfo
+        {
+            Key = "OTHER",
+            Count = otherCount
+        });
+        return _mapper.Map<IEnumerable<CustomerJourneySummaryInfo>>(data);
     }
 }
 

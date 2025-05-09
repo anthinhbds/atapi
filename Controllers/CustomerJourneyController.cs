@@ -30,6 +30,41 @@ namespace atmnr_api.Controllers
             return WrapPagingModel<IEnumerable<CustomerJourneyInfo>>.Ok(data, total);
         }
 
+        [HttpPost("queryPlanned")]
+        public async Task<ActionResult<WrapPagingModel<IEnumerable<CustomerJourneyInfo>>>> QueryPlanned([FromBody] QueryParamModel model, [FromQuery] int? page, [FromQuery] int? pageSize)
+        {
+            var data = await _service.QueryPlanned(model, page, pageSize);
+            var total = await _service.QueryPlannedTotal(model);
+
+            return WrapPagingModel<IEnumerable<CustomerJourneyInfo>>.Ok(data, total);
+        }
+
+        [HttpPost("queryMet")]
+        public async Task<ActionResult<WrapPagingModel<IEnumerable<CustomerJourneyInfo>>>> QueryMet([FromBody] QueryParamModel model, [FromQuery] int? page, [FromQuery] int? pageSize)
+        {
+            var data = await _service.QueryMet(model, page, pageSize);
+            var total = await _service.QueryMetTotal(model);
+
+            return WrapPagingModel<IEnumerable<CustomerJourneyInfo>>.Ok(data, total);
+        }
+
+        [HttpPost("queryOther")]
+        public async Task<ActionResult<WrapPagingModel<IEnumerable<CustomerJourneyInfo>>>> QueryOther([FromBody] QueryParamModel model, [FromQuery] int? page, [FromQuery] int? pageSize)
+        {
+            var data = await _service.QueryOther(model, page, pageSize);
+            var total = await _service.QueryOtherTotal(model);
+
+            return WrapPagingModel<IEnumerable<CustomerJourneyInfo>>.Ok(data, total);
+        }
+
+        [HttpPost("getSummary")]
+        public async Task<ActionResult<WrapPagingModel<IEnumerable<CustomerJourneySummaryInfo>>>> GetSumByStatus([FromBody] QueryParamModel model)
+        {
+            var data = await _service.GetSummary(model);
+
+            return WrapPagingModel<IEnumerable<CustomerJourneySummaryInfo>>.Ok(data, 0);
+        }
+
         [HttpGet("details/{id}")]
         public async Task<ActionResult<WrapModel<IEnumerable<CustomerJourneyDetInfo>>>> GetDetail(string id)
         {

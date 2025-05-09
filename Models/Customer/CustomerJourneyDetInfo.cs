@@ -10,3 +10,9 @@ public class CustomerJourneyDetInfo
      public String? Projectname { get; set; }
      public String? Notes { get; set; }
 }
+
+public class CustomerJourneySummaryInfo
+{
+     public String Key { get; set; }
+     public int Count { get; set; }
+}
