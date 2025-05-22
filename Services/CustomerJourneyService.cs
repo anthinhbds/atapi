@@ -36,6 +36,7 @@ public interface ICustomerJourneyService
     Task<bool> DeleteAll(DeleteAllInfo model);
     Task<IEnumerable<CustomerInfo>> QueryCustomer(QueryParamModel model, int? page, int? pageSize);
     Task<int> QueryCustomerTotal(QueryParamModel model);
+    Task<IEnumerable<CustomerJourneyReportInfo>> GetReports(CustomerJournelReportParam ps);
 }
 public class CustomerJourneyService : GenericService, ICustomerJourneyService
 {
@@ -132,7 +133,7 @@ public class CustomerJourneyService : GenericService, ICustomerJourneyService
     }
     public async Task<int> QueryPlannedTotal(QueryParamModel model)
     {
-        var qry = ApplyFilter(_repo, model, ["customer.telephone", "district.districtname"]);
+        var qry = ApplyFilter(_repo, model, ["customer.telephone", "customer.customername"]);
         var c = await qry.Where(f => f.Status == "DHL").CountAsync();
         return c;
     }
@@ -392,6 +393,66 @@ public class CustomerJourneyService : GenericService, ICustomerJourneyService
             Count = otherCount
         });
         return _mapper.Map<IEnumerable<CustomerJourneySummaryInfo>>(data);
+    }
+
+    public async Task<IEnumerable<CustomerJourneyReportInfo>> GetReports(CustomerJournelReportParam ps)
+    {
+
+        var latestDates = _db.CustomerJourneyDets
+            .GroupBy(f => f.CustomerId)
+           .Select(g => new
+           {
+               CustomerId = g.Key,
+               Journeydate = g.Max(x => x.Journeydate),
+               Notes = g.Max(x => x.Notes)
+
+           });
+        var latestRecords = _db.CustomerJourneyDets.Join(latestDates,
+            det => new { det.CustomerId, det.Journeydate },
+            max => new { max.CustomerId, Journeydate = max.Journeydate },
+            (det, max) => det);
+
+
+        var query = _db.CustomerJourneys.Join(
+            latestRecords,
+             m => m.CustomerId,
+              d => d.CustomerId,
+              (m, d) => new { m, d });
+        if (!String.IsNullOrEmpty(ps.userId))
+        {
+            query = query.Where(f => f.m.UserId == ps.userId);
+        }
+        if (!String.IsNullOrEmpty(ps.month))
+        {
+            var year = int.Parse(ps.month.Substring(0, 4));
+            var month = int.Parse(ps.month.Substring(4, 2));
+            var startDate = DateTime.SpecifyKind(new DateTime(year, month, 1), DateTimeKind.Utc);
+            var endDate = DateTime.SpecifyKind(startDate.AddMonths(1).AddDays(-1), DateTimeKind.Utc);
+            query = query.Where(f => f.d.Journeydate >= startDate && f.d.Journeydate <= endDate);
+        }
+        var data = await query.Select(f => new CustomerJourneyReportInfo
+        {
+            CustomerId = f.m.CustomerId,
+            CustomerName = f.m.Customer.Customername,
+            Telephone = f.m.Customer.Telephone2 == "" ? f.m.Customer.Telephone : $"{f.m.Customer.Telephone} - {f.m.Customer.Telephone2}",
+            Status = f.m.Status,
+            Notes = f.d.Notes,
+            Project = f.d.Project,
+            Lastupdate = f.d.Journeydate
+        }).OrderByDescending(f => f.Lastupdate).ToListAsync();
+
+        if (data != null)
+        {
+            foreach (var item in data)
+            {
+                var arr = item.Project.Split(';');
+                var projects = await _db.Projects.Where(f => arr.Contains(f.ProjectId)).Select(f => f.Projectname).ToArrayAsync();
+                string projectname = string.Join(", ", projects);
+                item.Project = projectname;
+            }
+        }
+
+        return data;
     }
 }
 

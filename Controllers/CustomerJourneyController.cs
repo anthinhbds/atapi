@@ -117,5 +117,13 @@ namespace atmnr_api.Controllers
             return WrapPagingModel<IEnumerable<CustomerInfo>>.Ok(data, total);
         }
 
+        [HttpPost("reports")]
+        public async Task<ActionResult<WrapModel<IEnumerable<CustomerJourneyReportInfo>>>> GetReports([FromBody] CustomerJournelReportParam model)
+        {
+            var data = await _service.GetReports(model);
+
+            return WrapModel<IEnumerable<CustomerJourneyReportInfo>>.Ok(data);
+        }
+
     }
 }
